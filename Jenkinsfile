@@ -26,5 +26,20 @@ pipeline {
 				'''
 			}
 		}
+
+		stage('Push Image') {
+			steps {
+				withCredentials([usernamePassword(credentialsId: 'e4af9f44-e2b9-4253-b040-14b40090e1a6', passwordVariable: 'docker_password', usernameVariable: 'docker_user')]) {
+					sh '''
+					export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
+					echo "$docker_password" | docker login -u "$docker_user" --password-stdin
+					docker push ${IMAGE_NAME}:${IMAGE_TAG}
+					docker push ${IMAGE_NAME}:latest
+					docker logout
+					'''
+				}
+			}
+		}
+
 	}
 }
