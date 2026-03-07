@@ -47,8 +47,8 @@ pipeline {
 					sh '''
 					export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
 					export KUBECONFIG=$kubeconfig
-					kubectl apply -f k8s/deployment.yaml
-					kubectl apply -f k8s/service.yaml
+					kubectl apply -f deployment.yaml
+					kubectl apply -f service.yaml
 					kubectl rollout status deployment/part-inventory-service
 					'''
 				}
