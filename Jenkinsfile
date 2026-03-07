@@ -1,6 +1,11 @@
 pipeline {
 	agent any
 
+	environment{
+		IMAGE_NAME = "ram1uj/part-inventory-service"
+		IMAGE_TAG = "${BUILD_NUMBER}"
+	}
+
 	stages {
 		stage('Source') {
 			steps {
@@ -15,10 +20,9 @@ pipeline {
 				sh '''
 				export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
 				docker build \
-				-t ram1uj/part-inventory-service:${BUILD_NUMBER} \
-				-t ram1uj/part-inventory-service:latest \
-				-- platform linux/amd64 \
-				-f Dockerfile .
+				-t ${IMAGE_NAME}:${IMAGE_TAG} \
+				-t ${IMAGE_NAME}:latest \
+				--platform linux/amd64 .
 				'''
 			}
 		}
