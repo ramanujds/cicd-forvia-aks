@@ -41,5 +41,19 @@ pipeline {
 			}
 		}
 
+		stage('Kubernetes Deployment') {
+			steps {
+				withCredentials([file(credentialsId: '7a0ca4c2-970f-4a60-ba7e-4dc04f1caf2a', variable: 'kubeconfig')]) {
+					sh '''
+					export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
+					export KUBECONFIG=$kubeconfig
+					kubectl apply -f k8s/deployment.yaml
+					kubectl apply -f k8s/service.yaml
+					kubectl rollout status deployment/part-inventory-service
+					'''
+				}
+			}
+		}
+
 	}
 }
