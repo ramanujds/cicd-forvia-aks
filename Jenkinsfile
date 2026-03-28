@@ -48,6 +48,7 @@ pipeline {
                 echo 'Updating GitOps repository with new image tag'
                 sh '''
                 git clone https://github.com/ramanujds/gitops-repo-forvia || true
+                ls
                 cd gitops-repo-forvia/environments/values
                 git pull
                 sed -i '' 's/tag: .*/tag: "${IMAGE_TAG}"/' inventory-values.yaml
