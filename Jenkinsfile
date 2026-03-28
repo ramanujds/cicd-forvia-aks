@@ -51,9 +51,7 @@ pipeline {
                 ls
                 cd gitops-repo-forvia/environments/dev/values
                 git pull
-				# Use portable in-place edit syntax and allow IMAGE_TAG expansion.
-				sed -i.bak "s/^tag: .*/tag: \"${IMAGE_TAG}\"/" inventory-values.yaml
-				rm -f inventory-values.yaml.bak
+                sed -i '' "s/tag: .*/tag: ${IMAGE_TAG}" inventory-values.yaml
 
                 git commit -am "Update image tag to ${IMAGE_TAG}" || true
                 git push
