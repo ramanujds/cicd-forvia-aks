@@ -55,6 +55,8 @@ pipeline {
                 git push
                 '''
 
+}
+}
 
 
 	}
