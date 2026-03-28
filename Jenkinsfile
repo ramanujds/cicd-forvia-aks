@@ -49,7 +49,7 @@ pipeline {
                 sh '''
                 git clone https://github.com/ramanujds/gitops-repo-forvia || true
                 ls
-                cd gitops-repo-forvia/environments/values
+                cd gitops-repo-forvia/environments/dev/values
                 git pull
                 sed -i '' 's/tag: .*/tag: "${IMAGE_TAG}"/' inventory-values.yaml
 
