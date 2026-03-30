@@ -59,19 +59,50 @@ pipeline {
 					git clone -b ${GITOPS_BRANCH} ${GITOPS_REPO_URL} gitops-repo-forvia
 					cd gitops-repo-forvia
 
-					awk -v image_tag="$IMAGE_TAG" '
-					BEGIN { inPart=0; inImage=0; updated=0 }
-					/^partInventory:/ { inPart=1 }
-					inPart && /^  image:/ { inImage=1 }
-					inPart && inImage && /^[[:space:]]+tag:/ {
-						sub(/tag:.*/, "tag: \"" image_tag "\"")
-						updated=1
-						inImage=0
-					}
-					{ print }
-					END { if (updated == 0) exit 2 }
-					' "$GITOPS_VALUES_FILE" > "$GITOPS_VALUES_FILE.tmp"
-					mv "$GITOPS_VALUES_FILE.tmp" "$GITOPS_VALUES_FILE"
+					python3 - <<'PY'
+					import os
+					from pathlib import Path
+
+					tag = os.environ.get("IMAGE_TAG", "").strip()
+					values_file = Path(os.environ["GITOPS_VALUES_FILE"])
+
+					if not tag:
+						raise SystemExit("IMAGE_TAG is empty; aborting GitOps update.")
+					if not values_file.exists():
+						raise SystemExit(f"Values file not found: {values_file}")
+
+					lines = values_file.read_text(encoding="utf-8").splitlines()
+					in_part = False
+					in_image = False
+					updated = False
+
+					for i, line in enumerate(lines):
+						stripped = line.strip()
+						if line.startswith("partInventory:"):
+							in_part = True
+							in_image = False
+							continue
+
+						if in_part and stripped and not line.startswith("  ") and not stripped.startswith("#"):
+							in_part = False
+							in_image = False
+							continue
+
+						if in_part and line.startswith("  image:"):
+							in_image = True
+							continue
+
+						if in_part and in_image and line.startswith("    tag:"):
+							indent = line[: len(line) - len(line.lstrip(" "))]
+							lines[i] = f'{indent}tag: "{tag}"'
+							updated = True
+							break
+
+					if not updated:
+						raise SystemExit("Could not find partInventory.image.tag to update.")
+
+					values_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+					PY
 
 					git config user.name "jenkins-bot"
 					git config user.email "jenkins-bot@users.noreply.github.com"
