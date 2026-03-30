@@ -55,7 +55,7 @@ pipeline {
 					git clone -b ${GITOPS_BRANCH} ${GITOPS_REPO_URL} gitops-repo-forvia
 					cd gitops-repo-forvia
 
-					sed -i "s|^    tag:.*|    tag: \"${IMAGE_TAG}\"|" ${GITOPS_VALUES_FILE}
+					sed -i.bak "s|^    tag:.*|    tag: \"${IMAGE_TAG}\"|" ${GITOPS_VALUES_FILE} && rm -f ${GITOPS_VALUES_FILE}.bak
 
 					git config user.name "jenkins-bot"
 					git config user.email "jenkins-bot@users.noreply.github.com"
