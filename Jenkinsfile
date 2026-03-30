@@ -51,22 +51,31 @@ pipeline {
 				withCredentials([usernamePassword(credentialsId: 'github-credentials', passwordVariable: 'password', usernameVariable: 'username')]) {
 					sh '''
 					set -e
+					if [ -z "${IMAGE_TAG}" ]; then
+						echo "IMAGE_TAG is empty; aborting GitOps update."
+						exit 1
+					fi
 					rm -rf gitops-repo-forvia
 					git clone -b ${GITOPS_BRANCH} ${GITOPS_REPO_URL} gitops-repo-forvia
 					cd gitops-repo-forvia
 
-					awk -v tag="${IMAGE_TAG}" '
-					BEGIN { inPart=0; inImage=0 }
+					awk -v image_tag="$IMAGE_TAG" '
+					BEGIN { inPart=0; inImage=0; updated=0 }
 					/^partInventory:/ { inPart=1 }
 					inPart && /^  image:/ { inImage=1 }
-					inPart && inImage && /^[[:space:]]+tag:/ { sub(/tag:.*/, "tag: \"" tag "\""); inImage=0 }
+					inPart && inImage && /^[[:space:]]+tag:/ {
+						sub(/tag:.*/, "tag: \"" image_tag "\"")
+						updated=1
+						inImage=0
+					}
 					{ print }
-					' ${GITOPS_VALUES_FILE} > ${GITOPS_VALUES_FILE}.tmp
-					mv ${GITOPS_VALUES_FILE}.tmp ${GITOPS_VALUES_FILE}
+					END { if (updated == 0) exit 2 }
+					' "$GITOPS_VALUES_FILE" > "$GITOPS_VALUES_FILE.tmp"
+					mv "$GITOPS_VALUES_FILE.tmp" "$GITOPS_VALUES_FILE"
 
 					git config user.name "jenkins-bot"
 					git config user.email "jenkins-bot@users.noreply.github.com"
-					git add ${GITOPS_VALUES_FILE}
+					git add "$GITOPS_VALUES_FILE"
 
 					if git diff --cached --quiet; then
 						echo "No GitOps changes detected; skipping commit."
