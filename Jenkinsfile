@@ -4,6 +4,9 @@ pipeline {
 	environment{
 		IMAGE_NAME = "ram1uj/part-inventory-service"
 		IMAGE_TAG = "${BUILD_NUMBER}"
+		GITOPS_REPO_URL = "https://github.com/ramanujds/gitops-repo-forvia.git"
+		GITOPS_BRANCH = "main"
+		GITOPS_VALUES_FILE = "environments/prod/values/inventory-values.yaml"
 	}
 
 	stages {
@@ -38,6 +41,39 @@ pipeline {
 					docker push ${IMAGE_NAME}:${IMAGE_TAG}
 					docker push ${IMAGE_NAME}:latest
 					docker logout
+					'''
+				}
+			}
+		}
+
+		stage('Update GitOps Image Tag') {
+			steps {
+				withCredentials([usernamePassword(credentialsId: 'github-credentials', passwordVariable: 'password', usernameVariable: 'username')]) {
+					sh '''
+					set -e
+					rm -rf gitops-repo-forvia
+					git clone -b ${GITOPS_BRANCH} ${GITOPS_REPO_URL} gitops-repo-forvia
+					cd gitops-repo-forvia
+
+					awk -v tag="${IMAGE_TAG}" '
+					BEGIN { inPart=0; inImage=0 }
+					/^partInventory:/ { inPart=1 }
+					inPart && /^  image:/ { inImage=1 }
+					inPart && inImage && /^[[:space:]]+tag:/ { sub(/tag:.*/, "tag: \"" tag "\""); inImage=0 }
+					{ print }
+					' ${GITOPS_VALUES_FILE} > ${GITOPS_VALUES_FILE}.tmp
+					mv ${GITOPS_VALUES_FILE}.tmp ${GITOPS_VALUES_FILE}
+
+					git config user.name "jenkins-bot"
+					git config user.email "jenkins-bot@users.noreply.github.com"
+					git add ${GITOPS_VALUES_FILE}
+
+					if git diff --cached --quiet; then
+						echo "No GitOps changes detected; skipping commit."
+					else
+						git commit -m "ci: update inventory image tag to ${IMAGE_TAG}"
+						git push https://${username}:${password}@github.com/ramanujds/gitops-repo-forvia.git ${GITOPS_BRANCH}
+					fi
 					'''
 				}
 			}
