@@ -25,7 +25,6 @@ pipeline {
 				docker build \
 				-t ${IMAGE_NAME}:${IMAGE_TAG} \
 				-t ${IMAGE_NAME}:latest \
-				--platform linux/amd64,linux/arm64 \
 				-f Dockerfile .
 
 				'''
